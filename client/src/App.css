@@ -1,0 +1,118 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-content {
+  padding: 24px;
+  background: #f0f2f5;
+}
+
+.ant-layout-header {
+  background: #001529;
+  padding: 0 24px;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.navbar-brand {
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.navbar-menu {
+  display: flex;
+  gap: 16px;
+}
+
+.navbar-menu .ant-menu-item {
+  color: white;
+}
+
+.navbar-menu .ant-menu-item:hover {
+  color: #1890ff;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.stats-card {
+  margin-bottom: 24px;
+}
+
+.block-card {
+  margin-bottom: 16px;
+}
+
+.transaction-card {
+  margin-bottom: 16px;
+}
+
+.wallet-card {
+  margin-bottom: 16px;
+}
+
+.mining-card {
+  margin-bottom: 16px;
+}
+
+.cosmos-card {
+  margin-bottom: 16px;
+}
+
+.hash-text {
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.balance-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: #52c41a;
+}
+
+.timestamp-text {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.status-badge {
+  margin-left: 8px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.error-container {
+  text-align: center;
+  padding: 24px;
+}
+
+.success-message {
+  margin-bottom: 16px;
+}
+
+.form-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.table-container {
+  margin-top: 16px;
+}
+
+.pagination-container {
+  margin-top: 16px;
+  text-align: right;
+}

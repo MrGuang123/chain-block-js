@@ -1,0 +1,39 @@
+{
+  "name": "chain-block-js",
+  "version": "1.0.0",
+  "description": "A JavaScript blockchain implementation with Cosmos integration",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-client": "cd client && npm install",
+    "heroku-postbuild": "npm run install-client && npm run build"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.1.1",
+    "level": "^8.0.0",
+    "ws": "^8.13.0",
+    "elliptic": "^6.5.4",
+    "@cosmjs/cosmwasm-stargate": "^0.31.1",
+    "@cosmjs/proto-signing": "^0.31.1",
+    "@cosmjs/stargate": "^0.31.1",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "blockchain",
+    "cosmos",
+    "javascript",
+    "cryptocurrency",
+    "web3"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
