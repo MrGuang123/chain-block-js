@@ -1,67 +1,99 @@
 const crypto = require("crypto-js");
 const EC = require("elliptic").ec;
-const ec = new EC("secp256k1");
+const ec = new EC("secp256k1"); // 使用secp256k1椭圆曲线算法
 
+/**
+ * 交易类 - 区块链中的交易数据结构
+ * 包含发送方、接收方、金额、签名等信息
+ */
 class Transaction {
+  /**
+   * 构造函数 - 创建新交易
+   * @param {string} fromAddress - 发送方地址（公钥）
+   * @param {string} toAddress - 接收方地址
+   * @param {number} amount - 交易金额
+   * @param {string} type - 交易类型（transfer/reward/mint）
+   */
   constructor(
     fromAddress,
     toAddress,
     amount,
     type = "transfer"
   ) {
-    this.fromAddress = fromAddress;
-    this.toAddress = toAddress;
-    this.amount = amount;
-    this.timestamp = Date.now();
-    this.type = type; // 'transfer', 'reward', 'mint'
-    this.hash = this.calculateHash();
-    this.signature = null;
+    this.fromAddress = fromAddress; // 发送方地址
+    this.toAddress = toAddress; // 接收方地址
+    this.amount = amount; // 交易金额
+    this.timestamp = Date.now(); // 交易创建时间戳
+    this.type = type; // 交易类型
+    this.hash = this.calculateHash(); // 交易哈希值
+    this.signature = null; // 数字签名（初始为空）
   }
 
-  // 计算交易哈希
+  /**
+   * 计算交易哈希值
+   * 使用SHA256算法对交易数据进行哈希计算
+   * @returns {string} 交易的哈希值
+   */
   calculateHash() {
     return crypto
       .SHA256(
-        this.fromAddress +
-          this.toAddress +
-          this.amount +
-          this.timestamp +
-          this.type
+        this.fromAddress + // 发送方地址
+          this.toAddress + // 接收方地址
+          this.amount + // 交易金额
+          this.timestamp + // 时间戳
+          this.type // 交易类型
       )
       .toString();
   }
 
-  // 签名交易
+  /**
+   * 使用私钥对交易进行签名
+   * @param {Object} signingKey - 椭圆曲线私钥对象
+   * @throws {Error} 如果签名者不是发送方则抛出错误
+   */
   signTransaction(signingKey) {
+    // 验证签名者是否为交易的发送方
     if (signingKey.getPublic("hex") !== this.fromAddress) {
       throw new Error("您不能为其他钱包签名交易！");
     }
 
+    // 计算交易哈希并使用私钥签名
     const hashTx = this.calculateHash();
     const sig = signingKey.sign(hashTx, "base64");
-    this.signature = sig.toDER("hex");
+    this.signature = sig.toDER("hex"); // 将签名转换为DER格式
   }
 
-  // 验证交易是否有效
+  /**
+   * 验证交易签名是否有效
+   * @returns {boolean} 签名有效返回true，否则返回false
+   * @throws {Error} 如果没有签名或签名格式错误
+   */
   isValid() {
-    // 挖矿奖励交易不需要签名
+    // 挖矿奖励交易不需要签名验证
     if (this.fromAddress === null) return true;
 
+    // 检查是否存在签名
     if (!this.signature || this.signature.length === 0) {
       throw new Error("没有签名！");
     }
 
+    // 从发送方地址恢复公钥
     const publicKey = ec.keyFromPublic(
       this.fromAddress,
       "hex"
     );
+
+    // 使用公钥验证签名
     return publicKey.verify(
       this.calculateHash(),
       this.signature
     );
   }
 
-  // 转换为JSON对象
+  /**
+   * 将交易转换为JSON对象
+   * @returns {Object} 交易的JSON表示
+   */
   toJSON() {
     return {
       fromAddress: this.fromAddress,
@@ -74,7 +106,11 @@ class Transaction {
     };
   }
 
-  // 从JSON对象创建交易
+  /**
+   * 从JSON对象创建交易实例
+   * @param {Object} json - 交易的JSON数据
+   * @returns {Transaction} 交易实例
+   */
   static fromJSON(json) {
     const tx = new Transaction(
       json.fromAddress,
@@ -88,17 +124,29 @@ class Transaction {
     return tx;
   }
 
-  // 创建挖矿奖励交易
+  /**
+   * 创建挖矿奖励交易
+   * 挖矿奖励交易的发送方为null（系统生成）
+   * @param {string} minerAddress - 矿工地址
+   * @param {number} amount - 奖励金额
+   * @returns {Transaction} 挖矿奖励交易
+   */
   static createRewardTransaction(minerAddress, amount) {
     return new Transaction(
-      null,
-      minerAddress,
-      amount,
-      "reward"
+      null, // 发送方为null（系统）
+      minerAddress, // 接收方为矿工
+      amount, // 奖励金额
+      "reward" // 交易类型为奖励
     );
   }
 
-  // 创建代币铸造交易
+  /**
+   * 创建代币铸造交易
+   * 铸造交易的发送方为null（系统生成）
+   * @param {string} toAddress - 接收方地址
+   * @param {number} amount - 铸造金额
+   * @returns {Transaction} 铸造交易
+   */
   static createMintTransaction(toAddress, amount) {
     return new Transaction(null, toAddress, amount, "mint");
   }

@@ -25,24 +25,36 @@ import axios from "axios";
 
 const { Title, Text } = Typography;
 
+/**
+ * 钱包管理页面组件
+ * 提供钱包创建、交易发送、余额查询等功能
+ */
 const Wallet = () => {
-  const [wallets, setWallets] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [form] = Form.useForm();
+  // 状态管理
+  const [wallets, setWallets] = useState([]); // 钱包列表
+  const [loading, setLoading] = useState(false); // 加载状态
+  const [error, setError] = useState(null); // 错误信息
+  const [form] = Form.useForm(); // 表单实例
 
+  /**
+   * 创建新钱包
+   * 调用API创建钱包并保存到本地存储
+   */
   const createWallet = async () => {
     try {
       setLoading(true);
+      // 调用后端API创建钱包
       const response = await axios.post(
         "/api/blockchain/wallet"
       );
       const newWallet = response.data.data;
 
+      // 更新钱包列表
       setWallets((prev) => [...prev, newWallet]);
       message.success("钱包创建成功！");
 
       // 保存私钥到本地存储（仅用于演示）
+      // 注意：生产环境中应该使用更安全的存储方式
       localStorage.setItem(
         `wallet_${newWallet.address}`,
         JSON.stringify(newWallet)
@@ -55,15 +67,22 @@ const Wallet = () => {
     }
   };
 
+  /**
+   * 发送交易
+   * 处理交易表单提交，发送已签名的交易
+   * @param {Object} values - 表单数据
+   */
   const sendTransaction = async (values) => {
     try {
       setLoading(true);
+
+      // 调用后端API发送交易
       const response = await axios.post(
         "/api/blockchain/transactions",
         values
       );
       message.success("交易发送成功！");
-      form.resetFields();
+      form.resetFields(); // 重置表单
     } catch (err) {
       message.error(
         err.response?.data?.error || "交易发送失败"
@@ -74,11 +93,20 @@ const Wallet = () => {
     }
   };
 
+  /**
+   * 复制文本到剪贴板
+   * @param {string} text - 要复制的文本
+   */
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     message.success("已复制到剪贴板");
   };
 
+  /**
+   * 获取钱包余额
+   * @param {string} address - 钱包地址
+   * @returns {number} 钱包余额
+   */
   const getWalletBalance = async (address) => {
     try {
       const response = await axios.get(
@@ -91,6 +119,9 @@ const Wallet = () => {
     }
   };
 
+  /**
+   * 组件挂载时从本地存储加载钱包
+   */
   useEffect(() => {
     // 从本地存储加载钱包
     const savedWallets = [];
@@ -112,11 +143,13 @@ const Wallet = () => {
 
   return (
     <div>
+      {/* 页面标题 */}
       <Title level={2}>
         <WalletOutlined /> 钱包管理
       </Title>
 
       <Row gutter={[16, 16]}>
+        {/* 创建钱包卡片 */}
         <Col xs={24} lg={12}>
           <Card title="创建新钱包" className="wallet-card">
             <Button
@@ -137,6 +170,7 @@ const Wallet = () => {
           </Card>
         </Col>
 
+        {/* 发送交易卡片 */}
         <Col xs={24} lg={12}>
           <Card title="发送交易" className="wallet-card">
             <Form
@@ -144,6 +178,7 @@ const Wallet = () => {
               onFinish={sendTransaction}
               layout="vertical"
             >
+              {/* 发送方地址输入 */}
               <Form.Item
                 name="fromAddress"
                 label="发送方地址"
@@ -154,9 +189,10 @@ const Wallet = () => {
                   },
                 ]}
               >
-                <Input placeholder="发送方钱包地址" />
+                <Input placeholder="输入发送方钱包地址" />
               </Form.Item>
 
+              {/* 接收方地址输入 */}
               <Form.Item
                 name="toAddress"
                 label="接收方地址"
@@ -167,37 +203,52 @@ const Wallet = () => {
                   },
                 ]}
               >
-                <Input placeholder="接收方钱包地址" />
+                <Input placeholder="输入接收方钱包地址" />
               </Form.Item>
 
+              {/* 交易金额输入 */}
               <Form.Item
                 name="amount"
-                label="金额"
+                label="交易金额"
                 rules={[
-                  { required: true, message: "请输入金额" },
+                  {
+                    required: true,
+                    message: "请输入交易金额",
+                  },
+                  {
+                    type: "number",
+                    min: 0.000001,
+                    message: "金额必须大于0",
+                  },
                 ]}
               >
                 <Input
                   type="number"
-                  placeholder="转账金额"
+                  placeholder="输入交易金额"
+                  step="0.000001"
                 />
               </Form.Item>
 
+              {/* 私钥输入（用于签名） */}
               <Form.Item
                 name="privateKey"
                 label="私钥"
                 rules={[
-                  { required: true, message: "请输入私钥" },
+                  {
+                    required: true,
+                    message: "请输入私钥",
+                  },
                 ]}
               >
-                <Input.Password placeholder="发送方私钥" />
+                <Input.Password placeholder="输入发送方私钥" />
               </Form.Item>
 
+              {/* 提交按钮 */}
               <Form.Item>
                 <Button
                   type="primary"
-                  icon={<SendOutlined />}
                   htmlType="submit"
+                  icon={<SendOutlined />}
                   loading={loading}
                   block
                 >
@@ -209,64 +260,66 @@ const Wallet = () => {
         </Col>
       </Row>
 
-      <Card title="我的钱包" style={{ marginTop: 16 }}>
-        {wallets.length === 0 ? (
-          <div
-            style={{ textAlign: "center", padding: "40px" }}
-          >
-            <Text type="secondary">
-              暂无钱包，请先创建一个钱包
-            </Text>
-          </div>
-        ) : (
-          <Row gutter={[16, 16]}>
-            {wallets.map((wallet, index) => (
-              <Col xs={24} lg={12} key={wallet.address}>
-                <Card size="small" className="wallet-card">
-                  <Row gutter={[8, 8]}>
-                    <Col span={24}>
-                      <Text strong>钱包 {index + 1}</Text>
-                    </Col>
-                    <Col span={24}>
-                      <Space>
-                        <Text className="hash-text">
-                          {wallet.address.substring(0, 20)}
-                          ...
-                        </Text>
-                        <Button
-                          size="small"
-                          icon={<CopyOutlined />}
-                          onClick={() =>
-                            copyToClipboard(wallet.address)
-                          }
-                        >
-                          复制
-                        </Button>
-                      </Space>
-                    </Col>
-                    <Col span={24}>
-                      <Statistic
-                        title="余额"
-                        value={wallet.balance || 0}
-                        suffix="代币"
-                        valueStyle={{ color: "#3f8600" }}
-                      />
-                    </Col>
-                    <Col span={24}>
-                      <Tag color="blue">
-                        创建时间:{" "}
-                        {new Date(
-                          wallet.createdAt
-                        ).toLocaleString()}
-                      </Tag>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        )}
-      </Card>
+      {/* 钱包列表 */}
+      {wallets.length > 0 && (
+        <Card title="我的钱包" style={{ marginTop: 16 }}>
+          {wallets.map((wallet, index) => (
+            <Card
+              key={wallet.address}
+              size="small"
+              style={{ marginBottom: 8 }}
+            >
+              <Row gutter={16} align="middle">
+                <Col span={8}>
+                  <Text strong>钱包 {index + 1}</Text>
+                  <br />
+                  <Text code>{wallet.address}</Text>
+                </Col>
+                <Col span={4}>
+                  <Button
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={() =>
+                      copyToClipboard(wallet.address)
+                    }
+                  >
+                    复制地址
+                  </Button>
+                </Col>
+                <Col span={4}>
+                  <Statistic
+                    title="余额"
+                    value={wallet.balance || 0}
+                    precision={6}
+                    suffix="代币"
+                  />
+                </Col>
+                <Col span={8}>
+                  <Space>
+                    <Tag color="blue">已创建</Tag>
+                    <Text type="secondary">
+                      {new Date(
+                        wallet.createdAt
+                      ).toLocaleString()}
+                    </Text>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+          ))}
+        </Card>
+      )}
+
+      {/* 错误提示 */}
+      {error && (
+        <Alert
+          message="错误"
+          description={error}
+          type="error"
+          showIcon
+          style={{ marginTop: 16 }}
+        />
+      )}
     </div>
   );
 };
