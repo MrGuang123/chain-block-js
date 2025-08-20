@@ -8,26 +8,57 @@ const {
 const { coins } = require("@cosmjs/amino");
 
 class CosmosClient {
-  constructor(
-    rpcUrl = "https://cosmos-rpc.publicnode.com"
-  ) {
-    this.rpcUrl = rpcUrl;
+  constructor(rpcUrl = null) {
+    // 多个备用RPC节点
+    this.rpcEndpoints = [
+      rpcUrl,
+      "https://rpc.cosmos.network:26657",
+      "https://cosmos-rpc.polkachu.com",
+      "https://cosmos-rpc.allthatnode.com",
+      "https://rpc.ankr.com/cosmos",
+      "https://cosmos-rpc.publicnode.com", // 作为最后的备选
+    ].filter(Boolean);
+
+    this.rpcUrl = this.rpcEndpoints[0];
     this.client = null;
     this.signingClient = null;
     this.wallet = null;
   }
 
-  // 初始化客户端
+  // 初始化客户端（带重试机制）
   async initialize() {
-    try {
-      this.client = await StargateClient.connect(
-        this.rpcUrl
-      );
-      console.log("Cosmos客户端已连接");
-      return true;
-    } catch (error) {
-      console.error("连接Cosmos网络失败:", error);
-      return false;
+    for (let i = 0; i < this.rpcEndpoints.length; i++) {
+      try {
+        this.rpcUrl = this.rpcEndpoints[i];
+        console.log(`尝试连接到: ${this.rpcUrl}`);
+
+        this.client = await StargateClient.connect(
+          this.rpcUrl
+        );
+
+        // 测试连接是否有效
+        await this.client.getHeight();
+
+        console.log(
+          `✅ Cosmos客户端已连接到: ${this.rpcUrl}`
+        );
+        return true;
+      } catch (error) {
+        console.error(
+          `❌ 连接失败 ${this.rpcUrl}:`,
+          error.message
+        );
+
+        if (i === this.rpcEndpoints.length - 1) {
+          console.error("❌ 所有RPC节点连接失败");
+          return false;
+        }
+
+        // 等待1秒后重试
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000)
+        );
+      }
     }
   }
 
@@ -202,6 +233,73 @@ class CosmosClient {
       await this.signingClient.disconnect();
     }
     console.log("Cosmos客户端已断开连接");
+  }
+
+  // 网络诊断
+  async diagnoseConnection() {
+    console.log("🔍 开始网络诊断...");
+
+    for (let i = 0; i < this.rpcEndpoints.length; i++) {
+      const endpoint = this.rpcEndpoints[i];
+      console.log(`\n📡 测试节点 ${i + 1}: ${endpoint}`);
+
+      try {
+        // 测试基本连接
+        const startTime = Date.now();
+        const client = await StargateClient.connect(
+          endpoint
+        );
+        const connectTime = Date.now() - startTime;
+
+        // 测试API调用
+        const height = await client.getHeight();
+        const apiTime = Date.now() - startTime;
+
+        console.log(
+          `✅ 连接成功 - 延迟: ${connectTime}ms, API响应: ${apiTime}ms`
+        );
+        console.log(`📊 当前区块高度: ${height}`);
+
+        await client.disconnect();
+
+        // 如果这个节点可用，设置为当前节点
+        this.rpcUrl = endpoint;
+        return {
+          success: true,
+          endpoint: endpoint,
+          connectTime: connectTime,
+          apiTime: apiTime,
+          height: height,
+        };
+      } catch (error) {
+        console.log(`❌ 连接失败: ${error.message}`);
+
+        // 分析错误类型
+        if (error.message.includes("timeout")) {
+          console.log("⏰ 超时错误 - 网络延迟过高");
+        } else if (error.message.includes("ENOTFOUND")) {
+          console.log("🌐 DNS解析失败 - 检查网络连接");
+        } else if (error.message.includes("ECONNREFUSED")) {
+          console.log("🚫 连接被拒绝 - 服务可能不可用");
+        } else {
+          console.log("❓ 未知错误");
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: "所有节点都无法连接",
+    };
+  }
+
+  // 获取连接状态
+  getConnectionStatus() {
+    return {
+      currentEndpoint: this.rpcUrl,
+      isConnected: !!this.client,
+      availableEndpoints: this.rpcEndpoints,
+    };
   }
 }
 

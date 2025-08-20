@@ -285,4 +285,50 @@ router.get("/mnemonic", async (req, res) => {
   }
 });
 
+// 网络诊断接口
+router.get("/diagnose", async (req, res) => {
+  try {
+    console.log("🔍 开始Cosmos网络诊断...");
+
+    const diagnosis =
+      await cosmosClient.diagnoseConnection();
+
+    if (diagnosis.success) {
+      // 如果诊断成功，重新初始化客户端
+      await cosmosClient.initialize();
+    }
+
+    res.json({
+      success: true,
+      data: {
+        diagnosis: diagnosis,
+        connectionStatus:
+          cosmosClient.getConnectionStatus(),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// 获取连接状态
+router.get("/connection", (req, res) => {
+  try {
+    const status = cosmosClient.getConnectionStatus();
+
+    res.json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
