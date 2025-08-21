@@ -145,13 +145,27 @@ router.get("/balance/:address", (req, res) => {
  * 创建新钱包
  * POST /api/blockchain/wallet
  * 生成新的钱包密钥对和地址
+ *
+ * 请求参数：
+ * - includePrivateKey: boolean (可选) - 是否包含私钥，仅用于演示
  */
 router.post("/wallet", (req, res) => {
   try {
+    const { includePrivateKey = false } = req.body;
+
     const wallet = blockchain.createWallet();
+
+    // 根据参数决定返回的数据
+    const walletData = includePrivateKey
+      ? wallet.toJSON() // 包含私钥（仅用于演示）
+      : wallet.getInfo(); // 不包含私钥（生产环境推荐）
+
     res.json({
       success: true,
-      data: wallet.getInfo(),
+      data: walletData,
+      warning: includePrivateKey
+        ? "⚠️ 私钥已返回，仅用于演示环境，生产环境请勿使用此选项"
+        : undefined,
     });
   } catch (error) {
     res.status(500).json({

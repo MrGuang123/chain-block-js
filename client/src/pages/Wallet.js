@@ -14,6 +14,7 @@ import {
   Col,
   Statistic,
   Tag,
+  Modal,
 } from "antd";
 import {
   WalletOutlined,
@@ -39,26 +40,41 @@ const Wallet = () => {
   /**
    * 创建新钱包
    * 调用API创建钱包并保存到本地存储
+   * 注意：当前API只返回公钥信息，不包含私钥
    */
   const createWallet = async () => {
     try {
       setLoading(true);
+
       // 调用后端API创建钱包
+      // 注意：当前API只返回公钥信息，不包含私钥
       const response = await axios.post(
-        "/api/blockchain/wallet"
+        "/api/blockchain/wallet",
+        { includePrivateKey: true } // 请求包含私钥（仅用于演示）
       );
       const newWallet = response.data.data;
+
+      // 显示警告信息
+      if (response.data.warning) {
+        message.warning(response.data.warning);
+      }
 
       // 更新钱包列表
       setWallets((prev) => [...prev, newWallet]);
       message.success("钱包创建成功！");
 
-      // 保存私钥到本地存储（仅用于演示）
-      // 注意：生产环境中应该使用更安全的存储方式
+      // 保存钱包信息到本地存储
+      // 注意：如果包含私钥，请确保安全存储
       localStorage.setItem(
         `wallet_${newWallet.address}`,
         JSON.stringify(newWallet)
       );
+
+      // 显示私钥信息（仅用于演示）
+      if (newWallet.privateKey) {
+        message.info("请安全保存您的私钥！");
+        console.log("私钥:", newWallet.privateKey);
+      }
     } catch (err) {
       message.error("创建钱包失败");
       console.error("创建钱包失败:", err);
@@ -116,6 +132,58 @@ const Wallet = () => {
     } catch (err) {
       console.error("获取余额失败:", err);
       return 0;
+    }
+  };
+
+  /**
+   * 显示私钥信息
+   * @param {string} address - 钱包地址
+   */
+  const showPrivateKey = (address) => {
+    try {
+      const walletData = localStorage.getItem(
+        `wallet_${address}`
+      );
+      if (walletData) {
+        const wallet = JSON.parse(walletData);
+        if (wallet.privateKey) {
+          Modal.confirm({
+            title: "私钥信息",
+            content: (
+              <div>
+                <p>
+                  <strong>⚠️ 安全警告：</strong>
+                </p>
+                <p>
+                  私钥是访问您钱包的唯一凭证，请妥善保管！
+                </p>
+                <p>
+                  <strong>地址：</strong> {wallet.address}
+                </p>
+                <p>
+                  <strong>私钥：</strong>
+                </p>
+                <Input.TextArea
+                  value={wallet.privateKey}
+                  readOnly
+                  rows={3}
+                  style={{ fontFamily: "monospace" }}
+                />
+              </div>
+            ),
+            okText: "复制私钥",
+            cancelText: "关闭",
+            onOk: () => {
+              copyToClipboard(wallet.privateKey);
+              message.success("私钥已复制到剪贴板");
+            },
+          });
+        } else {
+          message.warning("该钱包没有私钥信息");
+        }
+      }
+    } catch (error) {
+      message.error("获取私钥失败");
     }
   };
 
@@ -284,6 +352,17 @@ const Wallet = () => {
                     }
                   >
                     复制地址
+                  </Button>
+                </Col>
+                <Col span={4}>
+                  <Button
+                    size="small"
+                    type="dashed"
+                    onClick={() =>
+                      showPrivateKey(wallet.address)
+                    }
+                  >
+                    查看私钥
                   </Button>
                 </Col>
                 <Col span={4}>
