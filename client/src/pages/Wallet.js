@@ -92,16 +92,59 @@ const Wallet = () => {
     try {
       setLoading(true);
 
-      // 调用后端API发送交易
+      // 第一步：准备交易数据，获取交易哈希
+      const prepareResponse = await axios.post(
+        "/api/blockchain/transactions/prepare",
+        {
+          fromAddress: values.fromAddress,
+          toAddress: values.toAddress,
+          amount: parseFloat(values.amount),
+        }
+      );
+
+      if (!prepareResponse.data.success) {
+        throw new Error(
+          prepareResponse.data.error || "准备交易失败"
+        );
+      }
+
+      const { transactionHash } = prepareResponse.data.data;
+
+      // 第二步：使用私钥对交易哈希进行签名
+      // 这里使用简化的签名方式，实际项目中应使用椭圆曲线数字签名
+      const signature = btoa(
+        values.fromAddress + transactionHash
+      )
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .substring(0, 128);
+
+      // 第三步：发送签名后的交易
+      const transactionDataToSend = {
+        fromAddress: values.fromAddress,
+        toAddress: values.toAddress,
+        amount: parseFloat(values.amount),
+        signature: signature,
+        transactionHash: transactionHash,
+      };
+
       const response = await axios.post(
         "/api/blockchain/transactions",
-        values
+        transactionDataToSend
       );
-      message.success("交易发送成功！");
-      form.resetFields(); // 重置表单
+
+      if (response.data.success) {
+        message.success("交易发送成功！");
+        form.resetFields(); // 重置表单
+      } else {
+        throw new Error(
+          response.data.error || "交易发送失败"
+        );
+      }
     } catch (err) {
       message.error(
-        err.response?.data?.error || "交易发送失败"
+        err.response?.data?.error ||
+          err.message ||
+          "交易发送失败"
       );
       console.error("发送交易失败:", err);
     } finally {
